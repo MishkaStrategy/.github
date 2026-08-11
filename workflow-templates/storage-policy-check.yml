@@ -21,4 +21,4 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Validate artifact policy
-        uses: MishkaStrategy/.github/.github/actions/validate-storage-policy
+        uses: MishkaStrategy/.github/.github/actions/validate-storage-policy@ddd88d89ecd99f0a6f7a14b7079298fe8e423597
