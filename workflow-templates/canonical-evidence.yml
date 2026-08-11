@@ -1,0 +1,40 @@
+name: Canonical exact-commit evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact 40-character commit SHA to verify
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  evidence:
+    runs-on: [self-hosted, fast]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.commit_sha }}
+          persist-credentials: false
+      - name: Verify exact commit and create manifest
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}"
+          mkdir -p evidence
+          printf '{"repository":"%s","commit":"%s","runId":"%s"}\n' \
+            "${GITHUB_REPOSITORY}" "${EXPECTED_SHA}" "${GITHUB_RUN_ID}" > evidence/manifest.json
+          # Add project-specific acceptance commands here. They must produce
+          # evidence in this same job; do not transfer it through an artifact.
+      - name: Publish immutable evidence to a draft GitHub Release
+        uses: MishkaStrategy/.github/.github/actions/publish-release-evidence@main
+        with:
+          source_path: evidence/manifest.json
+          asset_name: acceptance-manifest.json
+          commit_sha: ${{ inputs.commit_sha }}
+          draft: "true"

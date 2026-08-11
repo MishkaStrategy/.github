@@ -1,0 +1,6 @@
+{
+  "name": "MishkaStrategy baseline CI",
+  "description": "Self-hosted project CI with one-day failure-only diagnostics.",
+  "iconName": "octicon check-circle",
+  "categories": ["Continuous integration"]
+}

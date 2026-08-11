@@ -1,0 +1,6 @@
+{
+  "name": "MishkaStrategy storage policy check",
+  "description": "Rejects durable or routine-success GitHub Actions artifacts.",
+  "iconName": "octicon shield-check",
+  "categories": ["Continuous integration"]
+}

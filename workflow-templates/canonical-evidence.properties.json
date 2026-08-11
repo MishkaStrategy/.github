@@ -1,0 +1,6 @@
+{
+  "name": "MishkaStrategy canonical evidence",
+  "description": "Publishes exact-SHA immutable evidence directly to a draft GitHub Release.",
+  "iconName": "octicon package",
+  "categories": ["Continuous integration"]
+}
