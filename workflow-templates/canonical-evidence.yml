@@ -32,7 +32,7 @@ jobs:
           # Add project-specific acceptance commands here. They must produce
           # evidence in this same job; do not transfer it through an artifact.
       - name: Publish immutable evidence to a draft GitHub Release
-        uses: MishkaStrategy/.github/.github/actions/publish-release-evidence@c75fab3ca778cc58c98275a30aa063cff5431c37
+        uses: MishkaStrategy/.github/.github/actions/publish-release-evidence@024a7617f21c735510765f17f20d176a4e2ec584
         with:
           source_path: evidence/manifest.json
           asset_name: acceptance-manifest.json
