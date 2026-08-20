@@ -1,7 +1,7 @@
 # MishkaStrategy AI Agent Policy
 
-**Policy version:** 1.0  
-**Updated:** 2026-08-18  
+**Policy version:** 1.1  
+**Updated:** 2026-08-20  
 **Scope:** repositories owned by `MishkaStrategy`  
 **Status:** canonical organization default
 
@@ -92,6 +92,19 @@ Use enough context to be correct, but avoid policy bloat.
 - Load only the Skill instructions and referenced support files needed for the selected workflow.
 - Prefer the minimum useful combination of Skills rather than invoking every potentially related Skill.
 - Skip skill discovery for trivial tasks that are reliable without specialization.
+
+## Working-session lifecycle and handoff
+
+Long-running HQ, coordination, and implementation sessions should not accumulate context indefinitely when the older context is no longer materially useful and is beginning to reduce reliability, responsiveness, or clarity.
+
+- After a major milestone, or when the working context has become materially heavy, prefer ending the current session with a compact handoff and continuing the next substantial phase in a fresh session.
+- Do not interrupt work that can still be completed safely merely to rotate sessions. Finish the current coherent unit of work first when practical.
+- A handoff is orientation data, not a source of truth. A fresh session must re-verify material repository state from GitHub before making state-dependent claims or changes.
+- Keep handoffs compact. Include only durable information needed to resume efficiently, such as the target repository, current milestone, relevant branch/head or PR, completed work, verification performed, known blockers, durable decisions, and the next concrete objective.
+- Do not copy the full chat history into the handoff and do not preserve stale CI status, SHA values, or repository state as authoritative facts.
+- Do not mechanically create a new session after every small task. Rotate sessions when it meaningfully improves context efficiency, reliability, or responsiveness.
+
+Repository-specific instructions may define stricter handoff or session-rotation requirements when a project needs them.
 
 ## Organization defaults vs project rules
 
