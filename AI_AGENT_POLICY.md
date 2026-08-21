@@ -1,7 +1,7 @@
 # MishkaStrategy AI Agent Policy
 
-**Policy version:** 1.1  
-**Updated:** 2026-08-20  
+**Policy version:** 1.2  
+**Updated:** 2026-08-21  
 **Scope:** repositories owned by `MishkaStrategy`  
 **Status:** canonical organization default
 
@@ -95,16 +95,27 @@ Use enough context to be correct, but avoid policy bloat.
 
 ## Working-session lifecycle and handoff
 
-Long-running HQ, coordination, and implementation sessions should not accumulate context indefinitely when the older context is no longer materially useful and is beginning to reduce reliability, responsiveness, or clarity.
+Long-running HQ, coordination, and implementation sessions should maximize useful continuous work while keeping enough context quality to remain reliable.
 
-- After a major milestone, or when the working context has become materially heavy, prefer ending the current session with a compact handoff and continuing the next substantial phase in a fresh session.
-- Do not interrupt work that can still be completed safely merely to rotate sessions. Finish the current coherent unit of work first when practical.
+A **substantial work cycle** is a coherent unit such as:
+
+`objective / issue / PR -> implementation -> tests -> CI / evidence -> review / merge / close`
+
+Use cycle boundaries for session management instead of treating every milestone, PR, merge, elapsed-time checkpoint, or tool-call count as an automatic reason to stop.
+
+- Complete at least the first **three substantial cycles** in the current session when safe work is still available and context remains reliable.
+- After the third completed cycle, evaluate context quality and the likely size of the next cycle.
+- If the next cycle is bounded and can be completed safely with good context quality, continue through a **fourth substantial cycle** in the same session.
+- After the fourth completed substantial cycle, prefer a compact handoff and a fresh HQ session for the next substantial cycle unless finishing a small directly related tail is clearly safer and cheaper than rotating immediately.
+- Do not rotate merely because a PR was merged, a milestone closed, CI became green, a review completed, or a particular amount of wall-clock time elapsed.
+- Rotate earlier only when there is concrete evidence of context degradation, such as repeated state confusion, stale SHA/PR/CI assumptions, contradictory decisions, duplicated work, forgotten constraints, materially worsening responsiveness, or a platform/context limit.
+- User instructions such as `continue`, `work autonomously`, or `do not stop while safe work remains` favor continuing the current session until the cycle policy above or a real degradation/limit condition applies.
+- For ChatGPT HQ sessions, treat the owner's current operational ceiling of roughly **100 minutes** as a planning boundary rather than a target or guaranteed platform contract: do not begin a clearly large new cycle when the session is already close to that ceiling, but do not rotate early merely to satisfy a timer.
+- Prefer lightweight checkpoints between cycles. A checkpoint may record the current repository, branch/PR, verified head, completed cycle, blockers, and next objective without ending the session.
 - A handoff is orientation data, not a source of truth. A fresh session must re-verify material repository state from GitHub before making state-dependent claims or changes.
-- Keep handoffs compact. Include only durable information needed to resume efficiently, such as the target repository, current milestone, relevant branch/head or PR, completed work, verification performed, known blockers, durable decisions, and the next concrete objective.
-- Do not copy the full chat history into the handoff and do not preserve stale CI status, SHA values, or repository state as authoritative facts.
-- Do not mechanically create a new session after every small task. Rotate sessions when it meaningfully improves context efficiency, reliability, or responsiveness.
+- Keep handoffs compact and do not copy the full chat history or preserve stale CI/SHA state as authoritative facts.
 
-Repository-specific instructions may define stricter handoff or session-rotation requirements when a project needs them.
+Repository-specific instructions may define stricter lifecycle rules when a project genuinely needs them, but should not silently reduce the organization default to one-cycle-per-session behavior.
 
 ## Organization defaults vs project rules
 
