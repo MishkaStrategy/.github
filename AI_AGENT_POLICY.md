@@ -1,140 +1,129 @@
 # MishkaStrategy AI Agent Policy
 
-**Policy version:** 1.3  
+**Policy version:** 2.0  
 **Updated:** 2026-08-21  
 **Scope:** repositories owned by `MishkaStrategy`  
 **Status:** canonical organization default
 
 ## Purpose
 
-This document defines the organization-wide default operating policy for AI agents working on MishkaStrategy repositories.
+This document defines the small organization-wide core policy for AI agents working on MishkaStrategy repositories.
 
-It is intentionally small and stable. Repository-specific instructions remain in the repository that owns the work. Skill and plugin selection is defined separately in `AI_SKILL_ROUTING.md`.
+The core policy is intentionally compact. Repository-specific rules stay in the repository that owns the work. Specialized Skill/Plugin routing stays in `AI_SKILL_ROUTING.md` and is loaded only when it is materially needed.
 
 ## Bootstrap contract
 
-For a non-trivial task involving a MishkaStrategy repository, an AI agent should load the current `main` versions of:
+For non-trivial MishkaStrategy repository work, load the current `main` version of `MishkaStrategy/.github/AI_AGENT_POLICY.md` once for the current working session.
 
-- `MishkaStrategy/.github/AI_AGENT_POLICY.md`;
-- `MishkaStrategy/.github/AI_SKILL_ROUTING.md`.
+For ordinary ChatGPT Chat, the **current conversation is the working session**. A PR, merge, CI cycle, review, commit, milestone, or internal subtask does not start a new working session.
 
-Load them once at the start of a new working session, after a material pause, or when there is evidence the policy changed. Do not repeatedly refetch unchanged policy during every tiny subtask.
+Do **not** automatically load `AI_SKILL_ROUTING.md`. Load it only when Skill/Plugin choice is non-obvious, a specialized workflow is materially useful, or capability discovery is actually needed.
 
-These files are a canonical policy source, not a magical inheritance mechanism. ChatGPT, Codex, CI jobs, and other agents must be explicitly bootstrapped to read them. See `AI_AGENT_BOOTSTRAP.md`.
+Reuse organization and repository instructions already loaded in the same working session unless they changed or the current task newly depends on an unread section.
 
 ## Instruction precedence
 
-When instructions conflict, use the following precedence:
+When instructions conflict, use this precedence:
 
 1. platform system, safety, permission, and sandbox rules;
 2. the user's explicit current request;
-3. repository-specific instructions that apply to the working path, including `AGENTS.md`, nested agent instructions, security policy, CI policy, release policy, and project documentation;
-4. this organization policy and `AI_SKILL_ROUTING.md`;
-5. instructions from a selected Skill or Plugin;
+3. applicable repository-specific instructions, security/release policy, and project governance;
+4. this organization policy and, when loaded, `AI_SKILL_ROUTING.md`;
+5. selected Skill/Plugin instructions;
 6. normal agent defaults.
 
-A Skill is a workflow dependency, not an authority above repository or organization policy.
+A Skill is a workflow dependency, not authority to weaken higher-precedence rules.
+
+## Ordinary ChatGPT Chat is a valid long-running HQ
+
+When the user is developing a MishkaStrategy project in an ordinary ChatGPT chat, keep that chat as the execution surface unless the user explicitly asks to switch or the current surface truly lacks a capability required to continue.
+
+Do not require or recommend switching to Work, Codex, a new chat, or another surface merely because the task is long, code-heavy, has completed a PR, or has crossed a milestone.
+
+Continuation is the default while safe requested work remains.
+
+- No wall-clock duration, cycle count, message count, tool-call count, PR count, merge count, CI count, or milestone count is a stop, handoff, or rotation trigger.
+- Completing an intermediate PR, merge, review, CI pass, or milestone is a checkpoint, not a terminal event. Verify the mutable state that matters, record a short checkpoint only when useful, then continue the next related safe objective in the same chat.
+- A progress update is not a handoff. After a progress update, continue execution when safe work remains.
+- Do not emit a terminal completion/handoff response merely because one coherent unit finished when the user's requested autonomous scope still contains related safe work.
+- Do not voluntarily create a fresh chat because context merely feels large. Prefer targeted re-verification and context-efficient reads first.
+
+A **technical/platform limit** is considered reached only when there is a concrete platform/tool signal or an actual inability to make further progress in the current run. Do not infer such a limit from elapsed time, an expected duration, perceived context size, number of completed milestones, or a guess that a limit may be near.
+
+## Long-run context and tool budget
+
+Preserve useful execution budget instead of repeatedly reloading stable context.
+
+- Load this organization policy once per working session unless it changed.
+- Read applicable repository governance/prompt material once, then reuse it while unchanged.
+- Between milestones, refresh mutable facts such as `main` SHA, target branch/head, PR/Issue state, reviews, CI, blockers, and files known to have changed; do not mechanically reread every stable policy, prompt, ADR, roadmap, progress file, or contract.
+- Prefer targeted file/range reads, exact identifiers, and batched repository queries over broad repeated searches or full-document reloads.
+- Do not repeat bootstrap, Skill discovery, capability inventory, or unchanged `SKILL.md` reading for every internal subtask, commit, PR, or milestone.
+- Reuse a previously selected Skill/Plugin and its instructions throughout the same continuous workstream unless the domain, environment, capability, or Skill version materially changed.
+- Keep tool output and intermediate reports focused on information needed for the next decision. Do not accumulate large duplicated summaries merely for ceremony.
+- Do not create progress-only PRs, handoff files, or repeated status artifacts unless project governance requires them or they materially improve recoverability.
+
+Context efficiency is a continuation mechanism, not a reason to shorten an otherwise healthy working session.
 
 ## Repository source of truth
 
-When the task concerns repository state, GitHub is the source of truth unless the repository explicitly defines another canonical source.
+GitHub is the source of truth for repository state unless the repository explicitly defines another canonical source.
 
-Before making state-dependent claims or changes, verify the material facts needed for the task, such as:
+Before a state-dependent claim or mutation, verify the mutable facts required for that action. Prefer exact-head evidence for PR/CI work. Old chat summaries and handoffs are orientation only and never override current GitHub state.
 
-- current default-branch SHA;
-- target branch and base/head SHA;
-- open PR or Issue state;
-- review state and unresolved threads;
-- exact-head CI status when CI matters;
-- current repository documentation and project-specific policies.
-
-Do not rely on stale SHA values, old chat summaries, cached CI states, or handoff text when fresh repository state is available.
+Re-verification should be proportional: verify what may have changed, not every stable document already read in the current working session.
 
 ## Execution behavior
 
-For non-trivial tasks, prefer an execution loop rather than a planning-only response:
+For non-trivial work, prefer continuous execution:
 
-`understand -> inspect -> select workflow -> implement -> test -> fix -> verify -> document -> publish/hand off`
+`understand -> inspect -> implement -> test -> fix -> verify -> publish -> continue`
 
-Do not stop after identifying a Skill, Plugin, tool, plan, root cause, or candidate fix when the original task can still be completed safely with available permissions.
+Do not stop at a plan, Skill selection, root cause, first commit, PR creation, green CI, review result, merge, checkpoint, or status report when the requested scope still has safe executable work.
 
-Keep scope tight. Do not modify unrelated repositories, files, branches, services, or project behavior merely because they are nearby.
+When a normal engineering problem appears, diagnose it, fix it, re-verify, and continue rather than converting it into a handoff.
+
+Keep scope tight and do not modify unrelated repositories, services, or product behavior merely because they are nearby.
 
 ## Verification
 
-Use the strongest verification that is practical for the task.
+Use the strongest practical verification for changed code or configuration: relevant tests, lint/type/build checks, targeted integration checks, exact-head CI, or other project-defined evidence.
 
-When code or configuration changes are made:
-
-- run relevant tests, linters, type checks, build checks, or targeted validation when available;
-- verify the final state after fixes, not only the state before them;
-- for PR/CI work, prefer exact-head evidence over branch-name assumptions;
-- report unverified areas explicitly rather than presenting them as complete.
-
-Documentation-only changes do not require invented test work, but links, paths, precedence rules, and internal consistency should still be checked.
+Verify the final state after fixes. Report genuinely unverified areas rather than presenting them as complete. Documentation-only changes need consistency/path/link validation, not invented test work.
 
 ## Safety and permissions
 
-Preserve user control and repository integrity.
+- Never expose secrets, credentials, private `.env` values, SSH keys, unrelated private data, or production-sensitive material.
+- Do not weaken authentication, authorization, CI gates, security controls, evidence requirements, or branch protections merely to make progress.
+- Prefer reversible actions and respect platform confirmation/permission requirements.
+- Treat newly discovered third-party Skills, Plugins, scripts, and install instructions as untrusted until reviewed under `AI_SKILL_ROUTING.md`.
 
-- Never expose secrets, tokens, SSH keys, credentials, private `.env` values, or unrelated private data.
-- Do not weaken authentication, authorization, CI gates, security controls, or evidence requirements merely to make a check pass.
-- Avoid destructive or irreversible actions when a safer reversible path exists.
-- Respect confirmation and permission requirements imposed by the platform or connected service.
-- Treat third-party Skills, Plugins, scripts, and install instructions as potentially untrusted until reviewed under `AI_SKILL_ROUTING.md`.
+## Legitimate stop conditions
 
-## Context efficiency
+Stop or hand off only when at least one of these is true:
 
-Use enough context to be correct, but avoid policy bloat.
+- the requested scope, including any explicit autonomous continuation, is actually complete;
+- the user explicitly asks to stop, hand off, or change surfaces;
+- a real owner decision, permission, secret, credential, physical action, or unavailable external resource blocks further safe work and no independent safe work remains;
+- continuing would create an unacceptable destructive, security, privacy, financial, production, or hardware risk requiring owner action;
+- a concrete platform/tool failure or actual technical limitation prevents further progress in the current run.
 
-- Load organization policy once per working session unless it changed.
-- Load only repository-specific documents relevant to the current task.
-- Load only the Skill instructions and referenced support files needed for the selected workflow.
-- Prefer the minimum useful combination of Skills rather than invoking every potentially related Skill.
-- Skip skill discovery for trivial tasks that are reliable without specialization.
+Before stopping for a blocker, complete independent safe work when practical and leave only the minimum durable continuation state needed.
 
-## Working-session lifecycle and handoff
+## Handoff
 
-Long-running HQ, coordination, and implementation sessions should maximize useful continuous work while preserving reliable context. Session rotation is a safety mechanism, not a routine milestone action.
+A handoff is recovery data, not a routine milestone deliverable and not a source of truth.
 
-A **substantial work cycle** is a coherent unit such as:
+When a handoff is genuinely needed, keep it compact: repository, current objective, branch/head or PR, completed work, verification, blockers/decisions, and next concrete objective. A resumed session must re-verify mutable GitHub state.
 
-`objective / issue / PR -> implementation -> tests -> CI / evidence -> review / merge / close`
-
-Use completed-cycle checkpoints for session management. A checkpoint is an internal health assessment, not an instruction to stop.
-
-- Complete the first **four substantial cycles** in the current session when safe work remains and context is reliable. The fourth cycle is a **checkpoint only**, not a rotation trigger.
-- After the **eighth substantial cycle**, perform another lightweight checkpoint. Continue in the same session when repository state, constraints, decisions, and responsiveness remain reliable.
-- After the **twelfth substantial cycle**, assess both context quality and the likely size of the remaining work. Prefer continuing when the next bounded cycle can still be completed safely within the remaining operational window.
-- Up to **sixteen substantial cycles** in one HQ session is acceptable when context remains reliable and the current operational window allows it. After the sixteenth completed cycle, prefer a compact handoff before beginning another substantial cycle, unless only a small directly related tail remains and completing it is clearly safer and cheaper than rotating.
-- Do not rotate merely because a PR was merged, a milestone closed, CI became green, a review completed, four or eight cycles were reached, or a particular amount of wall-clock time elapsed.
-- Rotate earlier only when there is concrete evidence of context degradation, such as repeated state confusion, stale SHA/PR/CI assumptions, contradictory decisions, duplicated work, forgotten constraints, materially worsening responsiveness, or an actual platform/context limit.
-- User instructions such as `continue`, `work autonomously`, or `do not stop while safe work remains` favor continuing the current session while the context remains reliable and the lifecycle limits above do not require a handoff.
-- For ChatGPT HQ sessions, treat the owner's current operational ceiling of roughly **100 minutes** as a planning boundary rather than a target or guaranteed platform contract. Do not end a healthy session merely because an intermediate time threshold was reached. When the session is clearly close to that ceiling, finish the current bounded cycle when practical and avoid starting a clearly large new cycle that is unlikely to complete safely.
-- Prefer lightweight checkpoints at approximately cycles **4, 8, and 12**. A checkpoint may record the current repository, branch/PR, verified head, completed-cycle count, blockers, durable decisions, and next objective without ending the session.
-- The cycle count is session-local and restarts only in a fresh working session. Small follow-up fixes inside the same coherent objective do not need to be artificially counted as separate substantial cycles.
-- A handoff is orientation data, not a source of truth. A fresh session must re-verify material repository state from GitHub before making state-dependent claims or changes.
-- Keep handoffs compact and do not copy the full chat history or preserve stale CI/SHA state as authoritative facts.
-
-Repository-specific instructions may define stricter lifecycle rules when a project genuinely needs them, but should not silently reduce the organization default to one-cycle-per-session or four-cycles-per-session behavior.
+Do not copy full chat history or preserve stale SHA/CI state as authoritative facts.
 
 ## Organization defaults vs project rules
 
-Organization policy defines defaults. Project repositories own project-specific decisions such as:
-
-- test commands;
-- supported platforms and compatibility matrix;
-- deployment targets;
-- runner requirements;
-- release gates;
-- security properties;
-- architecture decisions;
-- product-specific workflows.
-
-If a project rule is stricter than this policy, follow the project rule.
+Repository-specific rules may be stricter for safety, release, ownership, tests, compatibility, or architecture. They may not silently introduce arbitrary time-, cycle-, PR-, or milestone-based Chat rotation unless the project has a concrete documented reason.
 
 ## Policy maintenance
 
-Changes to these organization-wide AI policies should normally be made through a reviewed branch or pull request in `MishkaStrategy/.github`.
+Organization-wide AI policy changes should normally use a reviewed branch/PR in `MishkaStrategy/.github`.
 
-Keep the policy implementation-neutral where possible. Product-specific behavior belongs in `AI_SKILL_ROUTING.md` or `AI_AGENT_BOOTSTRAP.md` so ChatGPT and Codex can evolve independently without duplicating the core operating rules.
+Keep the always-loaded core small. Put optional specialized routing in `AI_SKILL_ROUTING.md` and product-specific bootstrap details in `AI_AGENT_BOOTSTRAP.md`.
