@@ -1,110 +1,91 @@
 # MishkaStrategy AI Agent Bootstrap
 
-**Policy version:** 1.0  
-**Updated:** 2026-08-18
+**Policy version:** 2.0  
+**Updated:** 2026-08-21
 
 ## Why this file exists
 
-`MishkaStrategy/.github` is the canonical location for organization-wide AI policy, but files in this repository are not automatically injected into every ChatGPT conversation or every Codex working directory.
+`MishkaStrategy/.github` is the canonical location for organization-wide AI policy, but repository files are not automatically injected into every ChatGPT conversation or Codex working directory.
 
-Each product needs a small bootstrap instruction that points the agent to the current policy. Keep the bootstrap short; keep the real rules in the canonical policy files.
+The bootstrap must stay small so long ordinary ChatGPT HQ sessions do not spend execution/context budget repeatedly loading policy material.
 
-Canonical files:
+## Canonical files
 
-- `AI_AGENT_POLICY.md`
-- `AI_SKILL_ROUTING.md`
+- `AI_AGENT_POLICY.md` — compact always-loaded organization core;
+- `AI_SKILL_ROUTING.md` — deferred, load only when specialized routing/discovery is materially needed.
 
 ## ChatGPT bootstrap
 
-Use the following text in a ChatGPT Project instruction or another persistent instruction surface appropriate to the account/workspace:
+For ordinary ChatGPT chats used as project HQ, use this persistent/bootstrap instruction:
 
 ```text
-For non-trivial work involving repositories owned by MishkaStrategy, treat
-MishkaStrategy/.github as the canonical organization-wide AI policy source.
+For non-trivial work involving a MishkaStrategy repository, treat the current
+ordinary ChatGPT conversation as one continuous working session.
 
-At the start of a new repository working session, after a material pause, or
-when policy may have changed, use the connected GitHub capability to read the
-current main versions of:
+At the start of that working session, or when policy changed, read the current
+main version of MishkaStrategy/.github/AI_AGENT_POLICY.md and follow it with
+the target repository's own instructions.
 
-- AI_AGENT_POLICY.md
-- AI_SKILL_ROUTING.md
+Do not automatically load AI_SKILL_ROUTING.md. Load it only when non-obvious
+Skill/Plugin selection or capability discovery is materially needed.
 
-Follow those policies together with the target repository's own instructions.
-Do not refetch unchanged organization policy before every tiny subtask.
-Repository-specific rules override organization defaults where they conflict.
-Do not require me to name Skills explicitly when an available installed Skill
-or Plugin clearly matches the task.
+Reuse unchanged policy, repository instructions, prompts, and already-loaded
+Skill instructions across PRs, merges, CI cycles, reviews, and milestones.
+Refresh mutable GitHub state and changed files rather than repeating the full
+bootstrap. Continue related safe work in the same chat until the requested
+scope is complete, a real blocker requires the owner, or an actual platform/
+tool limitation prevents further progress.
 ```
 
-### ChatGPT behavior expected after bootstrap
-
-For a non-trivial MishkaStrategy repository task, ChatGPT should normally:
-
-1. read the organization policy if it has not already loaded the current version for the working session;
-2. inspect relevant project-specific rules;
-3. classify the task;
-4. automatically route to the best available installed Skill/Plugin or built-in workflow;
-5. use supported Plugin discovery only when a missing capability would materially help;
-6. continue through execution and verification.
-
-ChatGPT must not claim that it directly installed an arbitrary Skill from a GitHub repository when the product does not support that action.
+Ordinary Chat remains a valid long-running HQ surface. Do not require Work, Codex, or a fresh chat merely because development is lengthy or code-heavy.
 
 ## Codex bootstrap
 
-Add a short reference to the user's global Codex instructions (for example `$CODEX_HOME/AGENTS.md` / `~/.codex/AGENTS.md`, depending on the active environment):
+For Codex, use a short global reference such as:
 
 ```text
-For non-trivial work on MishkaStrategy repositories, load the current main
-versions of MishkaStrategy/.github/AI_AGENT_POLICY.md and
-MishkaStrategy/.github/AI_SKILL_ROUTING.md when GitHub/network access is
-available. Treat them as organization defaults below applicable repository
-AGENTS.md instructions. Reuse a policy already loaded in the current session
-unless there is reason to believe it changed.
+For non-trivial MishkaStrategy repository work, load the current main
+MishkaStrategy/.github/AI_AGENT_POLICY.md once for the working session.
+Load AI_SKILL_ROUTING.md only when specialized Skill routing/discovery is
+materially needed. Reuse unchanged policy and Skill instructions across the
+continuous workstream.
 ```
 
-Keep existing Codex-specific local configuration, including `find-skills` setup and local Skill installation rules, in the global Codex configuration. Do not duplicate a large copy of the organization policy there.
+Keep Codex-specific local configuration in its normal global/repository instruction layers rather than duplicating organization policy.
 
 ## Repository bootstrap
 
-A repository may optionally point to the organization policy from its own `AGENTS.md`, contributor guide, or project instructions when stronger reliability is required.
-
-Recommended short reference:
+Root `AGENTS.md` files should point to the compact core policy by default:
 
 ```text
-Organization defaults: before non-trivial work, follow the current main
-AI_AGENT_POLICY.md and AI_SKILL_ROUTING.md from MishkaStrategy/.github.
-Project instructions in this repository take precedence where they conflict.
+For non-trivial work in this repository, load the current main
+MishkaStrategy/.github/AI_AGENT_POLICY.md once for the current working session.
+Do not automatically load AI_SKILL_ROUTING.md; load it only when non-obvious
+specialized routing/discovery is materially needed.
+
+In ordinary ChatGPT Chat, the current conversation remains the working session
+across PRs, merges, CI cycles, reviews, and milestones. Reuse unchanged
+instructions and refresh only material mutable state between steps.
 ```
 
-Do not mechanically copy the full organization policy into every repository. A short reference prevents policy drift and keeps updates centralized.
+Do not copy the full organization policy into project repositories.
 
 ## Refresh rules
 
-Refresh organization policy when:
+Refresh `AI_AGENT_POLICY.md` when:
 
-- starting a new working session on a MishkaStrategy repository;
-- resuming after a material pause;
-- the policy repository changed;
-- a task depends on a rule that may have been updated;
-- the user explicitly asks to refresh or verify policy.
+- starting a genuinely new working session;
+- the organization policy changed;
+- the current task depends on a policy section that may have changed.
 
-Do not refresh solely because another tiny subtask began in the same active session.
+Do not refresh merely because a commit, PR, CI cycle, review, milestone, or internal subtask completed.
+
+Refresh repository state proportionally: current SHAs, PR/Issue/review/CI state, blockers, and changed files. Do not mechanically reread stable governance already loaded in the same session.
 
 ## Failure behavior
 
-If GitHub access is temporarily unavailable:
+If GitHub access is temporarily unavailable, reuse a current policy copy already loaded in the active working session. Otherwise continue only where safe under repository/platform rules and state the inability to verify policy only when it materially affects the task.
 
-- use a current policy copy already loaded in the active session if one exists;
-- otherwise continue only where safe using repository-specific instructions and available platform rules;
-- do not invent organization policy content;
-- state the inability to verify the current organization policy if it materially affects the requested work.
+## Rollout rule
 
-## Rollout recommendation
-
-Roll out in this order:
-
-1. keep these files canonical in `MishkaStrategy/.github`;
-2. add the short ChatGPT bootstrap to the ChatGPT Project(s) used for MishkaStrategy repository work;
-3. add the short Codex bootstrap to global Codex instructions;
-4. add repository references only to projects where extra reliability is valuable;
-5. measure whether Skill selection improves and whether repeated prompt boilerplate decreases before adding more policy.
+Keep the organization core centralized and compact. Project repositories carry only a short bootstrap reference plus genuinely project-specific governance. This avoids policy drift and minimizes repeated context overhead.
