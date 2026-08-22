@@ -2,6 +2,7 @@
   "name": "HQ policy source protection",
   "target": "branch",
   "enforcement": "active",
+  "bypass_actors": [],
   "conditions": {
     "repository_id": {
       "repository_ids": [1330499424]
