@@ -21,7 +21,7 @@ done
 gh auth status >/dev/null
 
 # The ECHO required-workflow ruleset must never point at a branch-only copy.
-# Bootstrap the workflow into the protected source repository first, then apply.
+# Bootstrap the workflow into the source repository main branch first, then apply.
 gh api \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: ${API_VERSION}" \
@@ -32,16 +32,23 @@ upsert_ruleset() {
   local name="$1"
   local payload="$2"
   local id
+  local -a ids=()
 
-  id="$(
+  mapfile -t ids < <(
     gh api --paginate \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: ${API_VERSION}" \
       "orgs/${ORG}/rulesets" \
-      --jq ".[] | select(.name == \"${name}\") | .id" \
-      | head -n 1
-  )"
+      --jq ".[] | select(.name == \"${name}\") | .id"
+  )
 
+  if (( ${#ids[@]} > 1 )); then
+    echo "Refusing ambiguous update: multiple rulesets named '${name}'" >&2
+    printf '  ruleset id: %s\n' "${ids[@]}" >&2
+    exit 3
+  fi
+
+  id="${ids[0]:-}"
   if [[ -n "${id}" ]]; then
     echo "Updating ruleset ${name} (${id})"
     gh api --method PUT \
