@@ -2,6 +2,7 @@
   "name": "ECHO HQ main gate",
   "target": "branch",
   "enforcement": "active",
+  "bypass_actors": [],
   "conditions": {
     "repository_id": {
       "repository_ids": [1341969468]
