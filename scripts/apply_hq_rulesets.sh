@@ -31,24 +31,35 @@ gh api \
 upsert_ruleset() {
   local name="$1"
   local payload="$2"
-  local id
-  local -a ids=()
+  local ids=""
+  local id=""
+  local candidate=""
+  local count=0
 
-  mapfile -t ids < <(
+  ids="$(
     gh api --paginate \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: ${API_VERSION}" \
       "orgs/${ORG}/rulesets" \
       --jq ".[] | select(.name == \"${name}\") | .id"
-  )
+  )"
 
-  if (( ${#ids[@]} > 1 )); then
+  # Keep this compatible with the Bash 3.2 that ships with macOS. Avoid
+  # mapfile/readarray while still failing closed on duplicate ruleset names.
+  while IFS= read -r candidate; do
+    [[ -z "${candidate}" ]] && continue
+    count=$((count + 1))
+    id="${candidate}"
+  done <<< "${ids}"
+
+  if (( count > 1 )); then
     echo "Refusing ambiguous update: multiple rulesets named '${name}'" >&2
-    printf '  ruleset id: %s\n' "${ids[@]}" >&2
+    while IFS= read -r candidate; do
+      [[ -n "${candidate}" ]] && printf '  ruleset id: %s\n' "${candidate}" >&2
+    done <<< "${ids}"
     exit 3
   fi
 
-  id="${ids[0]:-}"
   if [[ -n "${id}" ]]; then
     echo "Updating ruleset ${name} (${id})"
     gh api --method PUT \
