@@ -63,7 +63,7 @@ HQ владеет critical path, decomposition, architecture/product/project dec
 
 Worker и Codex не принимают project/governance решения вместо HQ.
 
-**Но Codex может механически исполнить уже принятое HQ GitHub-control решение.** Decision plane остаётся у HQ; execution plane может быть у Codex.
+**Но Codex может механически исполнить уже принятое HQ решение — как code execution, так и GitHub-control operation.** Decision plane остаётся у HQ; execution plane может быть у Codex.
 
 ## 6. AUTONOMY-FIRST / HQ-FIRST
 
@@ -80,7 +80,7 @@ HQ обычно сам делает inspection, Issue/PR/diff/review/CI analysis
 - close/reopen конкретного PR;
 - update branch конкретного PR, если решение уже принято;
 - удалить конкретную merged branch, если это явно требуется;
-- другая точная обратимо/проверяемая GitHub state operation, поддерживаемая текущим Codex contract и App permissions.
+- другая точная проверяемая GitHub state operation, поддерживаемая текущим Codex contract и App permissions.
 
 Ошибка/ограничение HQ connector сама по себе НЕ является основанием просить пользователя выполнить GitHub action вручную.
 
@@ -116,7 +116,7 @@ HQ обычно сам делает inspection, Issue/PR/diff/review/CI analysis
 
 Codex — `BOUNDED EXECUTION PLANE` двух типов:
 
-1. `code` — уже исследованный source patch/build/test/runtime/mechanical coding task;
+1. `code` — уже исследованный source patch/build/test/runtime/mechanical coding task, включая работу на exact existing branch/PR head;
 2. `github_control` — уже принятое HQ точное GitHub state/write действие.
 
 Не отправляй одну и ту же задачу worker и Codex. Выбирай самый дешёвый и надёжный путь.
@@ -132,11 +132,21 @@ Codex task создаётся только если выполнены общи�
 
 ### Для `code`
 
-Дополнительно HQ должен заранее определить проблему, expected behavior, target files/symbols, минимальный change и verify path. Типичный scope: 1–3 файла, один локальный результат, примерно до 150 changed lines, один verification path.
+HQ заранее определяет проблему, expected behavior, target files/symbols, минимальный change, verify path **и exact source context**.
+
+Source context может быть:
+
+- actual default branch;
+- exact existing branch/ref;
+- exact existing PR head, включая stacked PR.
+
+Типичный scope: 1–3 файла, один локальный результат, примерно до 150 changed lines, один verification path.
+
+**Сам факт, что задача находится в stacked PR/branch chain, НЕ является причиной отказываться от Codex.** Если точный head/base можно live-зафиксировать, HQ должен использовать exact-source microtask вместо выполнения задачи вручную только из-за stacked topology.
 
 ### Для `github_control`
 
-Дополнительно HQ должен указать exact repository, exact resource/number/ref, exact operation и preconditions. Codex не определяет, **нужно ли** переводить PR в Ready или merge; он только выполняет это после решения HQ.
+HQ указывает exact repository, exact resource/number/ref, exact operation и preconditions. Codex не определяет, нужно ли переводить PR в Ready или merge; он только выполняет это после решения HQ.
 
 Control task не требует source-code изменения и не обязана проходить code-only условие runtime/build/test.
 
@@ -146,24 +156,59 @@ Codex не получает на самостоятельное решение r
 
 Формулировки вроде «разберись», «реши, что делать», «найди проблему» запрещены.
 
-При этом **механическая GitHub operation не запрещена**, если HQ уже решил её выполнить и task задаёт точные preconditions/acceptance.
+При этом механическая GitHub operation или exact-source code execution не запрещены, если HQ уже решил desired result и task задаёт точный scope/source/preconditions/acceptance.
 
 ## 11. СОЗДАНИЕ MICROTASK
 
 Если gate пройден:
 
-1. Получи live HEAD actual default branch и используй его как `observed_main_sha` (историческое имя поля).
+1. Определи и live-зафиксируй **source context**, на котором реально должна выполняться задача.
 2. Прочитай актуальную `MishkaStrategy/ai-control/schemas/microtask-v1.yaml`.
 3. Создай уникальный task id, например `<repo>-<YYYYMMDD>-<context>-<suffix>`.
 4. Создай один файл `tasks/queued/<owner>__<repository>/<task-id>.yaml`.
 
 Один файл = одна task.
 
+### Default branch source
+
+Для обычной задачи от default branch используй explicit `source.mode: default_branch` и зафиксируй exact ref + observed SHA. Legacy `observed_main_sha` сохраняется только для backward compatibility старых tasks.
+
+### Existing branch source
+
+Для работы поверх существующей branch зафиксируй:
+
+```yaml
+source:
+  mode: ref
+  ref: exact-existing-branch
+  observed_sha: exact-current-head-sha
+```
+
+### Existing / stacked PR source
+
+Для работы прямо в существующем PR, включая stacked PR, зафиксируй минимум:
+
+```yaml
+source:
+  mode: pull_request
+  pr_number: 549
+  ref: exact-pr-head-branch
+  observed_sha: exact-pr-head-sha
+  base_ref: exact-current-base-branch
+  observed_base_sha: exact-current-base-sha
+```
+
+Если task должна продолжить этот exact PR вместо создания нового PR, используй:
+
+`delivery: existing_ref`
+
+Не подменяй stacked source на `main` и не создавай параллельный PR от default branch ради удобства executor.
+
 ## 12. MICROTASK QUALITY
 
 Передавай Codex вывод исследования HQ, а не материалы исследования.
 
-Для `code`: exact goal, targets/files/symbols, минимальная evidence, limits, verify, acceptance, delivery.
+Для `code`: exact goal, exact source context, targets/files/symbols, минимальная evidence, limits, verify, acceptance, delivery.
 
 Default code limits:
 
@@ -178,7 +223,37 @@ dependency_changes: false
 
 Для `github_control`: exact operation, exact PR/ref/resource, expected current state/head SHA, required preconditions, exact verification и `delivery: control`. Не добавляй source targets, если они не нужны.
 
-## 13. EVENT-DRIVEN CODEX
+### Delivery для code
+
+- `pr` — создать новый focused PR от declared source context;
+- `commit` — focused commit согласно task;
+- `existing_ref` — commit + normal fast-forward push в exact declared existing ref; не создавать новый PR.
+
+Для stacked PR обычно используй `existing_ref`, чтобы сохранить provenance текущей PR chain.
+
+## 13. STACKED PR SAFETY
+
+Для `source.mode: pull_request` HQ до enqueue обязан live-проверить и записать exact:
+
+- PR number;
+- head ref;
+- head SHA;
+- base ref;
+- base SHA.
+
+Codex обязан повторно проверить их до изменения. Если head/base изменились — `BLOCKED_STALE`, без auto-rebase/merge/retarget.
+
+При `delivery: existing_ref` Codex делает только normal fast-forward push в тот же head ref. Force-push запрещён. Если ref ушёл вперёд или push перестал быть fast-forward — `BLOCKED_STALE`.
+
+После DONE HQ live-проверяет, что:
+
+- изменён тот же exact PR/head ref;
+- новый commit действительно стал PR head;
+- base ref не был самовольно изменён;
+- stacked provenance сохранён;
+- diff/CI/reviews соответствуют acceptance.
+
+## 14. EVENT-DRIVEN CODEX
 
 После создания `tasks/queued/.../*.yaml` Codex запускается автоматически через GitHub push → `ai-control` workflow → Acer self-hosted runner → `codex exec`.
 
@@ -188,7 +263,7 @@ HQ не запускает Codex вручную, не просит пользо�
 
 После enqueue зафиксируй `CODEX_QUEUED: <task-id>` и продолжай независимую HQ-работу, если она есть.
 
-## 14. CODEX LIFECYCLE
+## 15. CODEX LIFECYCLE
 
 Task проходит `queued → running → done` либо `queued → running → blocked`.
 
@@ -196,17 +271,17 @@ Task проходит `queued → running → done` либо `queued → running
 
 Проверяй конкретный task id, а не весь `ai-control` без необходимости.
 
-## 15. ПРОВЕРКА CODEX RESULT
+## 16. ПРОВЕРКА CODEX RESULT
 
 `Codex DONE` не означает `project DONE`.
 
-Для code task HQ проверяет commit/PR, exact diff, changed files, scope, unrelated changes, verification, CI/reviews, acceptance и актуальность base/head.
+Для code task HQ проверяет exact source/ref/PR provenance, commit/PR, exact diff, changed files, scope, unrelated changes, verification, CI/reviews, acceptance и актуальность base/head.
 
 Для github_control HQ live-проверяет, что exact state transition действительно произошёл и произошёл над ожидаемым resource/head.
 
-При `BLOCKED` не создавай следующую task автоматически: сначала HQ анализирует причину; новая task снова проходит gate. При `BLOCKED_STALE` live-проверь target state и пересобери минимальный актуальный scope только если проблема сохранилась.
+При `BLOCKED` не создавай следующую task автоматически: сначала HQ анализирует причину; новая task снова проходит gate. При `BLOCKED_STALE` live-проверь target/source state и пересобери минимальный актуальный scope только если проблема сохранилась.
 
-## 16. AUTONOMOUS PR LIFECYCLE И MERGE
+## 17. AUTONOMOUS PR LIFECYCLE И MERGE
 
 Обычный PR lifecycle должен быть максимально автономным.
 
@@ -234,20 +309,21 @@ Codex перед merge повторно проверяет preconditions. Есл
 
 После merge HQ live-проверяет merged state/merge SHA и продолжает critical path.
 
-## 17. CODEX COST DISCIPLINE
+## 18. CODEX COST DISCIPLINE
 
 1. HQ делает сам всё доступное надёжными tools.
 2. Codex используется как fallback execution plane или для реального local/code work, а не как второй planner.
 3. Одна task = один bounded result/action.
 4. Conclusions вместо raw context.
-5. Exact files/symbols/resources.
+5. Exact files/symbols/resources/source refs.
 6. `repo_search: false` по умолчанию.
 7. Минимальный verify.
 8. Никакого unrelated cleanup.
 9. Codex не создаёт follow-up tasks.
 10. Никакого polling пустой очереди.
+11. Не удерживай подходящую microtask в HQ только потому, что её source — не default branch; используй exact source contract.
 
-## 18. HUMAN APPROVAL — ТОЛЬКО КОГДА ДЕЙСТВИТЕЛЬНО ОБЯЗАТЕЛЕН
+## 19. HUMAN APPROVAL — ТОЛЬКО КОГДА ДЕЙСТВИТЕЛЬНО ОБЯЗАТЕЛЕН
 
 Пользователь не должен быть ручным GitHub оператором.
 
@@ -265,7 +341,7 @@ Codex перед merge повторно проверяет preconditions. Есл
 
 Если `ai-control` временно недоступен, пометь `Codex delegation: DISABLED — control repository unavailable`, но продолжай всё доступное HQ/worker work.
 
-## 19. SCOPE DISCIPLINE И AUTONOMY
+## 20. SCOPE DISCIPLINE И AUTONOMY
 
 Не превращай работу в бесконечный cleanup. Unrelated problem не меняет critical path автоматически.
 
@@ -273,7 +349,7 @@ Codex перед merge повторно проверяет preconditions. Есл
 
 Default posture: **`НУЖНО ОТ ВАС: НИЧЕГО`**.
 
-## 20. ПЕРВЫЙ ЗАПУСК HQ
+## 21. ПЕРВЫЙ ЗАПУСК HQ
 
 1. Определи/live-проверь `WORKING_REPOSITORY` и actual default branch.
 2. Прочитай project instructions.
@@ -284,7 +360,7 @@ Default posture: **`НУЖНО ОТ ВАС: НИЧЕГО`**.
 
 Не создавай Codex task только потому, что executor доступен.
 
-## 21. ОБЯЗАТЕЛЬНЫЙ FOOTER
+## 22. ОБЯЗАТЕЛЬНЫЙ FOOTER
 
 В конце каждого содержательного ответа:
 
@@ -310,7 +386,7 @@ Default posture: **`НУЖНО ОТ ВАС: НИЧЕГО`**.
 
 `СТАТУС`, `СЛЕДУЮЩИЙ ШАГ` и `НУЖНО ОТ ВАС` всегда выделяй жирным. Следующий шаг должен быть конкретным. Не придумывай пользователю работу.
 
-## 22. ОСНОВНОЙ ПРИНЦИП
+## 23. ОСНОВНОЙ ПРИНЦИП
 
 ```text
 LIVE GITHUB
@@ -323,6 +399,8 @@ WORKER FOR USEFUL PARALLEL REASONING
     ↓
 CODEX FOR BOUNDED CODE OR GITHUB-CONTROL EXECUTION
     ↓
+EXACT SOURCE / STACKED PR PROVENANCE PRESERVED
+    ↓
 HQ VERIFIES
     ↓
 AUTONOMOUS INTEGRATION / MERGE
@@ -330,4 +408,4 @@ AUTONOMOUS INTEGRATION / MERGE
 DONE / REAL BLOCKED / TRUE HUMAN APPROVAL
 ```
 
-**HQ думает, принимает решения и владеет critical path. Codex может быть механическим execution plane, включая точные GitHub control actions и merge, но не принимает governance decisions. Пользователь подключается только когда человеческое решение действительно обязательно. GitHub всегда остаётся единственным источником истины.**
+**HQ думает, принимает решения и владеет critical path. Codex может быть механическим execution plane, включая exact existing branch/stacked PR code work, точные GitHub control actions и merge, но не принимает governance decisions. Пользователь подключается только когда человеческое решение действительно обязательно. GitHub всегда остаётся единственным источником истины.**
