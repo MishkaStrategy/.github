@@ -42,8 +42,10 @@ GitHub — единственный источник истины. Пользо�
 
 1. Прочитай свежий `repos.yaml`.
 2. Если repository есть с `enabled: true` — используй его.
-3. Если отсутствует — live-получи actual default branch и добавь только текущий repository с `enabled: true`.
-4. Если `enabled: false` — не включай автоматически; это явный human policy stop для Codex delegation.
+3. Если отсутствует — live-получи actual default branch и сначала добавь только текущий repository с `enabled: true` обычной safe optimistic записью.
+4. Если прямая запись через HQ connector blocked/unavailable, создай ровно один request в `MishkaStrategy/ai-control` по пути `registrations/queued/<owner>__<repository>/<request-id>.yaml` со schema `repo-registration/v1`, `repo`, `created_at` и live `default_branch`.
+5. Дождись event-driven результата в соответствующем `registrations/done/` или `registrations/blocked/`, live-перечитай `repos.yaml` и продолжай автономно. Этот fallback — zero-Codex/zero-model workflow и не тратит Codex credits.
+6. Если `enabled: false` — не включай автоматически; это явный human policy stop для Codex delegation.
 
 Пример:
 
@@ -56,6 +58,8 @@ GitHub — единственный источник истины. Пользо�
 ## 4. SAFE WRITES В REPOS.YAML
 
 `repos.yaml` — shared mutable file. Перед записью перечитай latest version, сохрани все чужие entries, измени только текущий `WORKING_REPOSITORY` и используй актуальный file/blob SHA. При conflict перечитай файл и повторно примени только своё изменение. Blind overwrite запрещён.
+
+Если safe write невозможно выполнить именно из-за ограничения HQ connector, используй registration-request fallback из §3. Один отказ connector не является причиной оставлять Codex недоступным на неопределённый срок, говорить «попробуем позже» или просить пользователя зарегистрировать repository вручную.
 
 ## 5. РОЛЬ HQ
 
@@ -129,6 +133,8 @@ Codex task создаётся только если выполнены общи�
 2. Scope bounded и не требует самостоятельного project reasoning от Codex.
 3. Есть однозначная verification/acceptance.
 4. `WORKING_REPOSITORY` разрешён в `repos.yaml` с `enabled: true`.
+
+Если repository отсутствует, сначала заверши lazy registration, включая zero-Codex registration-request fallback при недоступной прямой записи. Только проверенный `enabled: false` или реальный failure/block результата регистрации делает repository непригодным для Codex delegation.
 
 ### Для `code`
 
@@ -339,6 +345,8 @@ Codex перед merge повторно проверяет preconditions. Есл
 
 Отсутствие удобного HQ tool само по себе не является human approval.
 
+Невозможность прямой connector-записи в `repos.yaml` также не требует человека: используй zero-Codex registration-request fallback. Но существующий `enabled: false` — явный human policy stop; не меняй его автоматически на `true`, и его снятие может требовать настоящего human approval.
+
 Если `ai-control` временно недоступен, пометь `Codex delegation: DISABLED — control repository unavailable`, но продолжай всё доступное HQ/worker work.
 
 ## 20. SCOPE DISCIPLINE И AUTONOMY
@@ -354,7 +362,7 @@ Default posture: **`НУЖНО ОТ ВАС: НИЧЕГО`**.
 1. Определи/live-проверь `WORKING_REPOSITORY` и actual default branch.
 2. Прочитай project instructions.
 3. Проверь `MishkaStrategy/ai-control` и `repos.yaml`.
-4. Lazy-register только текущий repository при необходимости.
+4. Lazy-register только текущий repository при необходимости: сначала safe optimistic write, а при connector block — один request в `registrations/queued/...` и event-driven result; не объявляй Codex недоступным до результата fallback.
 5. Восстанови relevant live GitHub state.
 6. Определи critical path и открой первую волну, если есть работа.
 
@@ -394,6 +402,8 @@ LIVE GITHUB
 HQ DECIDES
     ↓
 HQ EXECUTES DIRECTLY WHEN TOOLING WORKS
+    ↓
+ZERO-CODEX REGISTRATION FALLBACK WHEN DIRECT ALLOWLIST WRITE IS BLOCKED
     ↓
 WORKER FOR USEFUL PARALLEL REASONING
     ↓
