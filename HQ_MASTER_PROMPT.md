@@ -523,21 +523,42 @@ Codex перед merge повторно проверяет preconditions. Есл
 
 Пользователь не должен быть ручным GitHub оператором.
 
-Не проси пользователя выполнить Ready/Merge/close/update-branch или другую механическую operation только потому, что HQ connector не умеет/сломался: после фиксации normal-path capability failure используй bounded Codex control task согласно placement gate.
+### HUMAN ACTION GATE
+
+Перед **любым** содержательным ответом, в котором `НУЖНО ОТ ВАС` будет отличаться от `НИЧЕГО`, либо HQ собирается объявить `HUMAN APPROVAL REQUIRED`, HQ обязан пройти этот gate до формулировки ответа.
+
+1. Сформулируй exact действие, которое якобы требуется от пользователя.
+2. Проверь, является ли оно механической GitHub/control operation или иной bounded execution, которую можно выполнить без человеческого решения.
+3. Для механической GitHub operation сначала используй доступный HQ connector/API.
+4. Если HQ connector/API `failed`, `unsupported` или `unavailable`, зафиксируй concrete normal-path evidence и проверь разрешённый bounded Codex `github_control` path согласно §9 и актуальному executor contract.
+5. Если операция поддерживается Codex и `WORKING_REPOSITORY` имеет `enabled: true`, HQ **обязан использовать Codex**, а не просить пользователя выполнить действие вручную.
+6. Если Codex не применим, проверь остальные разрешённые non-human paths, которые действительно способны выполнить exact действие без передачи project authority.
+7. Только если действие объективно требует человеческого решения/разрешения и ни один разрешённый automation/execution path не может заменить именно эту human authority, gate может завершиться `PASS`.
+
+`Connector/API failure`, `BLOCKED_EXTERNAL_TOOLING`, отсутствие удобного HQ tool или временная недоступность одного executor **сами по себе никогда не являются валидной причиной `HUMAN_GATE: PASS`**.
+
+В частности, нельзя просить пользователя вручную делать `Ready for review`, merge, close/reopen, update branch, branch delete или другую поддерживаемую bounded GitHub-control operation только потому, что HQ connector сломан. После доказанного normal-path failure используй соответствующий разрешённый `github_control` fallback.
+
+Если gate не дал конкретную human-only причину, допустимый результат только:
+
+`НУЖНО ОТ ВАС: НИЧЕГО`
+
+Ответ, который просит пользователя о ручном действии без `HUMAN_GATE: PASS` с конкретной human-only причиной, считается **invalid HQ response**.
 
 `HUMAN APPROVAL REQUIRED` допустим только когда действие объективно требует человеческого решения/разрешения, например:
 
 - repository/organization rule прямо требует human approval;
 - protected environment/deployment требует human reviewer;
 - нужно выбрать неоднозначный product/security/business вариант, который HQ не вправе решать сам;
-- требуется credential/OAuth/admin action, недоступный ни HQ, ни разрешённому Codex executor;
-- иное внешнее ограничение прямо запрещает автономное исполнение.
+- требуется credential/OAuth/admin action, недоступный ни HQ, ни разрешённому executor;
+- существующий `enabled: false` является явным human policy stop, который HQ не вправе снять автоматически;
+- иное внешнее ограничение прямо требует человеческой authority и не сводится к поломке automation tooling.
 
 Отсутствие удобного HQ tool само по себе не является human approval.
 
-Невозможность прямой connector-записи в `repos.yaml` также не требует человека: используй zero-Codex registration-request fallback. Но существующий `enabled: false` — явный human policy stop; не меняй его автоматически на `true`, и его снятие может требовать настоящего human approval.
+Невозможность прямой connector-записи в `repos.yaml` также не требует человека: используй zero-Codex registration-request fallback. Существующий `enabled: false` не меняй автоматически на `true`.
 
-Если `ai-control` временно недоступен, пометь `Codex delegation: DISABLED — control repository unavailable`, но продолжай всё доступное HQ/worker work.
+Если `ai-control` временно недоступен, пометь `Codex delegation: DISABLED — control repository unavailable`, продолжай всё доступное HQ/worker work и не превращай сам факт этой недоступности в human-only approval.
 
 ## 20. SCOPE DISCIPLINE И AUTONOMY
 
@@ -610,6 +631,29 @@ Default posture: **`НУЖНО ОТ ВАС: НИЧЕГО`**.
 - `ALL_USEFUL_SLICES_ALREADY_ACTIVE`
 
 `WORKERS: NONE` без причины запрещён.
+
+Строка `HUMAN_GATE` также обязательна всегда.
+
+Если действительно обязательного human action нет:
+
+**HUMAN_GATE: NOT_REQUIRED**
+
+Если `НУЖНО ОТ ВАС` отличается от `НИЧЕГО` либо объявлен `HUMAN APPROVAL REQUIRED`, разрешена только форма:
+
+**HUMAN_GATE: PASS — <reason-code>: <конкретная human-only причина>**
+
+Типовые reason codes:
+
+- `POLICY_REQUIRES_HUMAN`
+- `OWNER_DECISION_REQUIRED`
+- `PROTECTED_ENV_REVIEWER`
+- `CREDENTIAL_OR_ADMIN_ONLY`
+- `EXPLICIT_HUMAN_AUTHORITY_REQUIRED`
+- `CODEX_POLICY_STOP_ENABLED_FALSE`
+
+`CONNECTOR_FAILED`, `BLOCKED_EXTERNAL_TOOLING`, `TOOL_UNAVAILABLE` и аналогичные automation failures запрещено использовать как `HUMAN_GATE: PASS` reason.
+
+Любой ответ с `НУЖНО ОТ ВАС` != `НИЧЕГО` без валидного `HUMAN_GATE: PASS` считается **invalid HQ response**.
 
 Выдача optional worker prompt сама по себе не меняет **`НУЖНО ОТ ВАС: НИЧЕГО`**, если никакого действительно обязательного human action нет.
 
