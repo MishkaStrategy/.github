@@ -2,6 +2,12 @@
 
 This repository contains organization-wide defaults and reusable infrastructure for MishkaStrategy repositories.
 
+## HQ development prompt
+
+The authoritative organization-wide ChatGPT HQ master prompt is stored in [`HQ_MASTER_PROMPT.md`](HQ_MASTER_PROMPT.md).
+
+New HQ chats should read the current live version of that file from GitHub rather than rely on copied prompt text from chat history.
+
 ## GitHub Actions storage and evidence
 
 Available workflow templates:
