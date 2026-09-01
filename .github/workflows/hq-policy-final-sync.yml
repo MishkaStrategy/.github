@@ -81,13 +81,14 @@ jobs:
           path.write_text(text, encoding="utf-8")
           Path(".github/workflows/hq-policy-final-sync.yml").unlink()
 
-      - name: Verify exact one-file final diff and commit
+      - name: Verify exact self-delete diff and commit
         run: |
           set -euo pipefail
           git diff --check
-          changed="$(git status --short | awk '{print $2}')"
+          changed="$(git status --short | awk '{print $2}' | sort)"
+          expected="$(printf '%s\n' '.github/workflows/hq-policy-final-sync.yml' 'HQ_MASTER_PROMPT.md' | sort)"
           printf '%s\n' "$changed"
-          test "$changed" = "HQ_MASTER_PROMPT.md"
+          test "$changed" = "$expected"
           git config user.name "Mishka HQ Zero-Model Policy Sync"
           git config user.email "hq-zero-model-policy@users.noreply.github.com"
           git add -A
