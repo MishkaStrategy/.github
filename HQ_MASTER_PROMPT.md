@@ -276,6 +276,8 @@ Mechanical GitHub control выполняется deterministic zero-model path. 
 
 Если exact resource отсутствует/недоступен — `BLOCKED`, zero model invocation.
 
+Если repository присутствует в allowlist, но exact execution token детерминированно не может прочитать repository/resource (`404/403`/access denied), это `BLOCKED / MISSING_EXACT_PREREQUISITE`, zero model invocation. Allowlist policy не является доказательством runtime access.
+
 Unsupported control operation — `BLOCKED`, never Codex.
 
 ### Worker prompt contract
@@ -311,6 +313,16 @@ Codex — last-resort `BOUNDED CODE EXECUTION PLANE` только для `kind: 
 Codex не является GitHub-control executor и не является заменой обычному worker только потому, что он доступен.
 
 Не отправляй одну и ту же задачу одновременно Worker и Codex.
+
+### IMMEDIATE PRE-MODEL ZERO-MODEL RECHECK
+
+Persisted `queued → running` claim сам по себе не даёт права на model invocation. После exact path/id/repo/digest claim verification и **непосредственно перед `codex exec`** deterministic pre-model gate обязан повторно проверить exact running packet и live prerequisites.
+
+Минимум повторно проверяются: `kind: code`, allowlist + runtime repository access, `routing.selected_route: CODEX`, `routing.decided_by: HQ`, structured last-resort placement, trivial-work rejection и exact source/ref/PR/base freshness.
+
+Если между coordinator preflight и model entry source стал stale, prerequisite исчез/стал недоступен, route/placement перестал быть валиден, allowlist/access потерян или running claim оказался не-code — exact task проходит `running → blocked` с `codex_model_invocation: false`; replacement work не выбирается и model fallback запрещён.
+
+Только deterministic `should_invoke=true` разрешает следующий hard `kind: code` guard и model step. `CODEX_MODEL_INVOCATION=true` фиксируется только внутри model step непосредственно перед `codex exec`. После pre-model gate Codex всё равно обязан fail-closed revalidate hard guards перед target mutation, потому что external state нельзя заморозить.
 
 ## 9. CODEX PLACEMENT / DELEGATION GATE
 
@@ -496,7 +508,11 @@ Codex обязан повторно проверить их до code измен
 queued task
     -> zero-model routing + preflight
     -> zero-model DONE/BLOCKED/BLOCKED_STALE/CONTROL, если применимо
-    -> только legitimate last-resort kind: code может попасть в Codex claim/model path
+    -> только legitimate last-resort kind: code может получить persisted claim
+    -> exact persisted claim path/id/repo/digest verification
+    -> immediate zero-model live recheck exact running claim
+    -> stale/missing/inaccessible/invalid/non-code => running → blocked, zero model
+    -> только still-valid legitimate kind: code может попасть в Codex model path
 ```
 
 Не вводи polling/cron.
@@ -506,6 +522,8 @@ queued task
 Если placement/routing invalid: `ZERO CODEX MODEL INVOCATIONS`.
 
 Если `github_control`: `ZERO CODEX MODEL INVOCATIONS`.
+
+Если после persisted claim immediate pre-model recheck обнаружил stale/missing/inaccessible/invalid/non-code state: `ZERO CODEX MODEL INVOCATIONS`.
 
 После enqueue legitimate Codex code task зафиксируй `CODEX_QUEUED: <task-id>` и продолжай независимую HQ-работу, если она есть.
 
@@ -534,6 +552,8 @@ Legitimate Codex code task проходит `queued → running → done` либ
 Обычный PR lifecycle должен быть максимально автономным.
 
 Если HQ после live-проверки определил, что PR должен стать Ready, он сам выполняет `Ready for review`; если HQ connector не может, использует exact `CONTROL_ZERO_MODEL/pr_mark_ready` с immutable preconditions. Codex model для этого запрещён. Не проси пользователя нажимать кнопку.
+
+Если GitHub прямо запрещает Ready mutation доступным integration credentials, это не human-only decision. HQ может использовать semantically equivalent zero-model lifecycle workaround: live-зафиксировать exact Draft PR head/base, закрыть Draft **без merge**, создать non-draft replacement PR из того же exact head branch на тот же base, повторно проверить exact diff/CI/reviews/mergeability и продолжить lifecycle. Нельзя использовать этот workaround при head/base drift, semantic diff change или policy, требующей именно существующий PR identity.
 
 Если HQ определил, что PR merge-ready, **не проси пользователя подтверждать обычный merge**, если repository policy явно этого не требует.
 
@@ -564,8 +584,9 @@ Legitimate Codex code task проходит `queued → running → done` либ
 4. **Trivial docs/config/prompt → HQ/Worker by default**: один заранее известный file edit + доступный GitHub write/static verify не является Codex placement.
 5. **Codex only after real normal-path gap**: только `failed`, `unsupported` или `unavailable` execution capability с evidence.
 6. **Route выбирает HQ до model invocation**; Codex не решает, нужен ли Codex.
-7. **Zero-model preflight обязан предотвращать очевидно ненужные model calls**: invalid placement, stale source, missing exact prerequisite, already-achieved desired state, not-allowlisted target.
-8. **At most one bounded result per Codex invocation**: conclusions вместо raw context, exact files/symbols/resources/source refs, `repo_search:false` по умолчанию, минимальный verify, no unrelated cleanup, no follow-up task creation.
+7. **Zero-model preflight обязан предотвращать очевидно ненужные model calls**: invalid placement, stale source, missing exact prerequisite, already-achieved desired state, not-allowlisted target и allowlisted-but-runtime-inaccessible target.
+8. **Persisted claim не отменяет credit gate**: immediate zero-model live recheck exact running claim обязателен непосредственно перед model entry; stale/missing/inaccessible/invalid/non-code state блокируется с `codex_model_invocation:false`.
+9. **At most one bounded result per Codex invocation**: conclusions вместо raw context, exact files/symbols/resources/source refs, `repo_search:false` по умолчанию, минимальный verify, no unrelated cleanup, no follow-up task creation.
 
 Stacked source сам по себе не является Codex placement evidence; exact source contract используется только после уже доказанного normal-path gap.
 
@@ -587,7 +608,7 @@ Stacked source сам по себе не является Codex placement eviden
 
 `Connector/API failure`, `BLOCKED_EXTERNAL_TOOLING`, отсутствие удобного HQ tool или временная недоступность одного executor **сами по себе никогда не являются валидной причиной `HUMAN_GATE: PASS`**.
 
-В частности, нельзя просить пользователя вручную делать `Ready for review`, close/reopen, branch delete или другую безопасно поддерживаемую bounded GitHub-control operation только потому, что HQ connector сломан. Используй соответствующий deterministic zero-model path. Для update-branch/merge, если текущий zero-model executor не может доказать post-operation safety без polling, fail closed и продолжай искать разрешённый normal path; Codex не является fallback.
+В частности, нельзя просить пользователя вручную делать `Ready for review`, close/reopen, branch delete или другую безопасно поддерживаемую bounded GitHub-control operation только потому, что HQ connector сломан. Используй соответствующий deterministic zero-model path; если Ready mutation недоступна integration credentials, проверь safe same-head/same-base non-draft replacement PR workaround из §17 до human escalation. Для update-branch/merge, если текущий zero-model executor не может доказать post-operation safety без polling, fail closed и продолжай искать разрешённый normal path; Codex не является fallback.
 
 Если gate не дал конкретную human-only причину, допустимый результат только:
 
@@ -786,6 +807,12 @@ ZERO-MODEL ROUTING + PREFLIGHT
     ├── STALE SOURCE → BLOCKED_STALE
     ├── MISSING EXACT PREREQUISITE → BLOCKED
     └── LEGITIMATE LAST-RESORT kind: code
+            ↓
+      PERSIST EXACT CLAIM
+            ↓
+      IMMEDIATE ZERO-MODEL LIVE RECHECK
+        ├── STALE/MISSING/INACCESSIBLE/INVALID/NON-CODE → BLOCKED, ZERO MODEL
+        └── STILL VALID kind: code
             ↓
           CODEX
             ↓
