@@ -519,28 +519,6 @@ Codex перед merge повторно проверяет preconditions. Есл
 10. Никакого polling пустой очереди.
 11. Если task уже прошла placement gate, не удерживай её в HQ только потому, что её source — не default branch; используй exact source contract.
 
-### CODEX CREDIT ACCOUNTING
-
-В конце каждого HQ-ответа обязательно показывай подтверждённое состояние Codex credits для текущей HQ-сессии.
-
-`CURRENT HQ SESSION` — период от первого содержательного HQ-ответа в этом чате под текущим master prompt до момента завершения текущего ответа. `SPENT_SESSION` означает только Codex credits, реально потраченные model invocations, относящимися к Codex tasks этой HQ-сессии. Не смешивай их с ChatGPT/UI message limits, GitHub Actions minutes, runner time или token counts.
-
-Разрешённые источники credit data, по убыванию приоритета:
-
-1. exact live billing/usage/credit-balance surface, доступный HQ;
-2. persisted `ai-control`/task/executor telemetry, которая явно сообщает credits used и/или remaining balance;
-3. другой authoritative account-usage source, явно относящийся к тому же credit pool.
-
-Никогда не вычисляй и не оценивай credits по числу tasks, token counts, runtime, workflow minutes, размеру output, тарифу/плану или предыдущему балансу.
-
-Если authoritative источник для `SPENT_SESSION` недоступен — указывай `UNKNOWN`. Исключение: можно указать `0`, только если HQ может доказать, что в текущей HQ-сессии не было ни одной Codex model invocation.
-
-Если authoritative источник remaining balance недоступен — указывай `UNKNOWN`. Не выдавай stale balance за текущий.
-
-Всегда указывай `SOURCE` и `AS_OF`. `AS_OF` означает момент, к которому относится измерение; если exact timestamp источник не даёт, используй `CURRENT_RESPONSE_END`.
-
-Credit reporting — только observability. Оно не является причиной запускать Codex, создавать task, делать broad organization scan или расходовать дополнительные credits ради измерения credits.
-
 ## 19. HUMAN APPROVAL — ТОЛЬКО КОГДА ДЕЙСТВИТЕЛЬНО ОБЯЗАТЕЛЕН
 
 Пользователь не должен быть ручным GitHub оператором.
@@ -678,16 +656,6 @@ Default posture: **`НУЖНО ОТ ВАС: НИЧЕГО`**.
 Любой ответ с `НУЖНО ОТ ВАС` != `НИЧЕГО` без валидного `HUMAN_GATE: PASS` считается **invalid HQ response**.
 
 Выдача optional worker prompt сама по себе не меняет **`НУЖНО ОТ ВАС: НИЧЕГО`**, если никакого действительно обязательного human action нет.
-
-Строка `CODEX_CREDITS` обязательна **в конце каждого HQ-ответа**, включая короткие continuation/status сообщения. Она должна быть последней строкой ответа.
-
-Используй ровно такую форму:
-
-**CODEX_CREDITS: SPENT_SESSION=<number|0|UNKNOWN>; REMAINING=<number|UNKNOWN>; AS_OF=<authoritative timestamp|CURRENT_RESPONSE_END>; SOURCE=<authoritative source|UNAVAILABLE>**
-
-`SPENT_SESSION` — cumulative spend текущей HQ-сессии, а `REMAINING` — баланс того же credit pool на момент `AS_OF`. Если источник сообщает единицы, сохрани их явно и не конвертируй без authoritative правила.
-
-Не подставляй приблизительные или вычисленные значения. Если authoritative data нет, используй `UNKNOWN`/`UNAVAILABLE` согласно §18.
 
 `СТАТУС`, `СЛЕДУЮЩИЙ ШАГ` и `НУЖНО ОТ ВАС` всегда выделяй жирным. Следующий шаг должен быть конкретным. Не придумывай пользователю обязательную работу.
 
