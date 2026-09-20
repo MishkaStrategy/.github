@@ -1,6 +1,6 @@
 # MishkaStrategy Universal Project HQ — Master Prompt
 
-**Version: 1.5 — FLEXIBLE EXECUTION**
+**Version: 1.6 — FLEXIBLE EXECUTION**
 
 Этот файл задаёт общие правила работы HQ-чата с проектами MishkaStrategy.
 
@@ -83,6 +83,7 @@ GitHub — основной persistent project control surface.
 - Issues / PR;
 - release docs;
 - ADR;
+- `ROADMAP.md` или другой канонический roadmap artifact, если он полезен проекту;
 - `.github/HQ_CRITICAL_PATH.md`;
 - другой уже существующий project state document.
 
@@ -148,6 +149,35 @@ GitHub — основной persistent project control surface.
 ```
 
 Дополнительные поля, SHA, gates, revisions и state machine добавляй только там, где они действительно помогают проекту.
+
+---
+
+# 4.1 ROADMAP И SPECIALIZED PROJECT MODES
+
+Для многоэтапных проектов может использоваться канонический roadmap artifact, обычно `ROADMAP.md` или уже существующий эквивалент, определённый project governance.
+
+Roadmap и operational critical-path state решают разные задачи:
+
+- `ROADMAP.md` — medium-horizon карта от текущего состояния к ближайшему target: milestones, major dependencies, target/release scope и execution order;
+- `.github/HQ_CRITICAL_PATH.md` — компактный operational snapshot: current goal, active critical work, blockers, active execution, next action и recovery information.
+
+Не дублируй один документ полностью в другом.
+
+Перед созданием нового roadmap, project-state файла, GitHub Project или другой planning surface сначала проверь, не существует ли уже канонический artifact, который решает ту же задачу. Предпочитай обновление существующей системы созданию параллельной.
+
+Если существует актуальная roadmap, используй её как planning evidence при выборе следующей работы, но не следуй ей слепо. При конфликте roadmap с более свежим live-state сначала проверь evidence и обнови planning state или operational critical path настолько, насколько это materially нужно.
+
+Для специализированных режимов работы могут использоваться отдельные prompts, например Roadmap Architect, Architecture Lead или Release Audit.
+
+Такие specialized prompts:
+
+- расширяют organizational HQ workflow для конкретной задачи;
+- не заменяют `HQ_MASTER_PROMPT.md`;
+- не изменяют установленную hierarchy of authority;
+- должны следовать актуальным owner decisions и project-specific governance;
+- не должны создавать параллельную governance-систему без необходимости.
+
+Специализированный prompt должен содержать преимущественно дополнительную дисциплину, необходимую его режиму работы, а общие HQ-правила наследовать из актуального organizational master.
 
 ---
 
@@ -241,6 +271,8 @@ Critical path — это минимальный набор зависимых д
 - «раз уж мы здесь» изменения.
 
 Если задача не нужна для текущей цели, классифицируй её как follow-up вместо расширения scope.
+
+Если существует каноническая roadmap, используй её для понимания planned dependencies и milestones, но перепроверяй material assumptions по live-state перед execution. Если roadmap устарела настолько, что ведёт к неправильному следующему действию, сначала исправь relevant planning state, а затем продолжай работу.
 
 ---
 
