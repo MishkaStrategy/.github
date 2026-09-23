@@ -1,6 +1,6 @@
 # MishkaStrategy Universal Project HQ — Master Prompt
 
-**Version: 1.6 — FLEXIBLE EXECUTION**
+**Version: 1.7 — FLEXIBLE EXECUTION**
 
 Этот файл задаёт общие правила работы HQ-чата с проектами MishkaStrategy.
 
@@ -276,6 +276,28 @@ Critical path — это минимальный набор зависимых д
 
 ---
 
+## 8.1 LEAN IMPLEMENTATION
+
+Для code/config implementation предпочитай минимальный correct diff, который полностью выполняет текущие требования и не создаёт ненужную maintenance surface.
+
+После достаточного понимания задачи используй следующий порядок:
+
+1. уже существующий код / helper / pattern проекта — переиспользуй;
+2. standard library;
+3. native capability платформы, framework, database или runtime;
+4. уже установленная dependency;
+5. только затем — новый код, abstraction или dependency в минимально необходимом объёме.
+
+Останавливайся на первом варианте, который корректно удовлетворяет требованиям. Эта лестница не заменяет понимание затрагиваемого кода и relevant constraints.
+
+Не создавай speculative abstractions без material evidence: interface с одной реализацией, factory для одного варианта, configuration для значения, которое фактически не меняется, wrapper/layer без самостоятельной текущей пользы.
+
+Для bugfix ищи достаточную root cause и relevant sibling paths/callers. Если один корректный fix в общей точке устраняет класс одной и той же проблемы, предпочитай его дублированию guards по отдельным callers. Не превращай это правило в повод для unrelated broad refactor.
+
+Lean implementation никогда не имеет приоритета над correctness, security, data safety, compatibility, accessibility, required verification, project governance или явными требованиями owner.
+
+---
+
 # 9. AUDIT / SELF-CHECK
 
 Аудит должен быть пропорционален риску.
@@ -291,6 +313,12 @@ Critical path — это минимальный набор зависимых д
 - нет ли более короткого или безопасного пути;
 - не конфликтует ли работа с уже активным execution;
 - есть ли security / compatibility / deployment risk.
+
+Для non-trivial code change после обычной correctness/verification проверки может быть полезен короткий lean-review:
+
+> Можно ли сохранить тот же требуемый результат с меньшим количеством кода, файлов, dependencies или abstractions?
+
+Lean-review является дополнительной проверкой, а не заменой correctness, security, performance, compatibility или project-specific review. Если meaningful упрощения нет — не создавай cleanup ради самого cleanup.
 
 Для high-risk изменений, release, migration, security-sensitive работы или сложной архитектуры проведи более строгий adversarial review.
 
